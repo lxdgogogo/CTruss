@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="416b73d4-b88a-49d8-825c-d2953d1901fc" name="zou_server">
+        <fileTransfer accessType="SFTP" host="192.168.31.102" port="22" sshConfigId="059d0961-28f9-4fcc-817d-f82880609132" sshConfig="liuxudong@192.168.31.102:22 key" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
