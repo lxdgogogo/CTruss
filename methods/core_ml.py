@@ -9,7 +9,7 @@ print(rootPath)
 sys.path.append(rootPath)
 
 
-from DTruss.DTruss import *
+from CTruss.CTruss import *
 
 
 def core_algorithm(graph: MultilayerGraph, core_number_limit: int, query_nodes: list[int]):
@@ -61,9 +61,9 @@ def core_algorithm(graph: MultilayerGraph, core_number_limit: int, query_nodes: 
 
 
 if __name__ == '__main__':
-    dataset = 'Yeast_2'
+    dataset = 'homo'
     ml_graph = MultilayerGraph(dataset)
     start = time()
-    core_algorithm(ml_graph, 4, [5])
+    core_algorithm(ml_graph, 2, [1])
     end1 = time()
     print(end1 - start)

@@ -9,10 +9,11 @@ sys.path.append(rootPath)
 
 from MLGraph.multilayer_graph import MultilayerGraph
 from methods.bottom_up import bottom_up_algorithm
+# from methods.bottom_up_2 import bottom_up_algorithm
 
 if __name__ == '__main__':
-    # datasets = ['RM', 'Yeast_2', 'Yeast_2', 'dblp', 'terrorist']
-    datasets = ['dblp']
+    # datasets = ['RM', 'Yeast_2', 'Yeast_2', 'dblp', 'terrorist','homo']
+    datasets = ['RM']
     for dataset in datasets:
         print(dataset)
         ml_graph = MultilayerGraph(dataset)

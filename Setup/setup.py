@@ -8,7 +8,7 @@ if __name__ == '__main__':
     print('test')
     paths = [
         '../test/test_cython',
-        # '../DTruss/DTruss',
+        # '../CTruss/CTruss',
         # '../experiment/experiment',
         # '../experiment/bottom_up_experiment',
         # '../methods/bottom_up',

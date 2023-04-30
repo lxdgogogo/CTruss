@@ -1,4 +1,4 @@
-from DTruss.DTruss import *
+from CTruss.CTruss import *
 from copy import deepcopy
 
 global max_density
@@ -13,20 +13,22 @@ def bottom_up_algorithm(graph: MultilayerGraph, truss_number_limit: int, layer_l
     global max_nodes
     global max_adjacency
     max_density = 0
-    nodes = deepcopy(graph.nodes_iterator)
-    edge_truss_number = {}
-    edges = set()
-    adjacency = [set() for _ in nodes]
     for layer in graph.layers_iterator:
-        for node in nodes:
+        nodes = set()
+        edges = set()
+        dsu = DSU(len(graph.nodes_iterator) + 1)
+        for node in graph.nodes_iterator:
+            if len(graph.adjacency_list[layer]) > 0:
+                nodes.add(node)
             for neighbor in graph.adjacency_list[layer][node]:
-                adjacency[node].add(neighbor)
                 if neighbor > node:
                     edges.add((node, neighbor))
-
-    edge_truss_number = edge_decomposition(adjacency)
-    bottom_up(graph, truss_number_limit, layer_limit, [], edges, adjacency,
-              nodes, edge_truss_number, query_nodes)
+                dsu.union(node, neighbor)
+        adjacency = deepcopy(graph.adjacency_list[layer])
+        get_truss(adjacency, edges, nodes, query_nodes, truss_number_limit)
+        edge_truss_number = edge_decomposition(adjacency)
+        bottom_up(graph, truss_number_limit, layer_limit, [layer], edges, adjacency,
+                  nodes, edge_truss_number, query_nodes)
     edge_len = 0
     for node in max_nodes:
         edge_len += len(max_adjacency[node]) / 2
@@ -52,11 +54,7 @@ def bottom_up(graph: MultilayerGraph, truss_number_limit: int, layer_limit: int,
     :param query_nodes: 查询顶点
     :return: 返回最大密度，最大层数，最大子图，最大邻接矩阵
     """
-    # 当前遍历的最大层
-    if len(layers) == 0:
-        max_layer_now = 0
-    else:
-        max_layer_now = max(layers) + 1
+    max_layer_now = max(layers) + 1
     layer_max = graph.number_of_layers
     if len(layers) >= layer_limit:
         density = compute_density_all(len(edges), len(nodes), len(layers))
@@ -74,16 +72,13 @@ def bottom_up(graph: MultilayerGraph, truss_number_limit: int, layer_limit: int,
 
     for layer in range(max_layer_now, layer_max):
         adjacency_layer = graph.adjacency_list[layer]
-        # print("layers%s to layers %s" % (layers, layer))
         layers.append(layer)
         layer_truss_number: dict = graph.edge_truss_number[layer]
         # 对两层进行合并
-        # 需要删除的边
-        need_remove_edges: set[tuple[int, int]] = set()
         # 需要删除的点
-        need_remove_nodes = set()
         # 已经删除的边
         remove_edges: set[tuple[int, int]] = set()
+        remove_nodes: set[int] = set()
         delete_truss_number_edges = {}
         # 如果扩展层没有该边或者该边的truss number小于k，则直接将该边删除即可
         for node in nodes:
@@ -91,36 +86,17 @@ def bottom_up(graph: MultilayerGraph, truss_number_limit: int, layer_limit: int,
                 if neighbor > node:
                     edge = (node, neighbor)
                     # 如果扩展层没有该边或者该边不构成三角形
-                    # if neighbor not in adjacency_layer[node] or not layer_truss_number.__contains__(edge):
-                    #     need_remove_edges.add(edge)
-                    #     continue
-                    # if layer_truss_number[edge] < truss_number_limit:
-                    #     need_remove_edges.add(edge)
-                    if neighbor not in adjacency_layer[node]:
-                        need_remove_edges.add(edge)
-        # print("len need: %d" % len(need_remove_edges))
-        # for edge in need_remove_edges:
-        remove_edges_keep_truss_one_layer(adjacency, edges, need_remove_edges, truss_number_limit,
-                                          remove_edges, edge_truss_number, delete_truss_number_edges)
-        for node in nodes:
-            if not adjacency[node]:
-                need_remove_nodes.add(node)
-
-        remove_nodes: set[int] = set()
-        dsu = DSU(len(graph.nodes_iterator) + 1)
-        for edge in edges:
+                    if neighbor not in adjacency_layer[node] or not layer_truss_number.__contains__(edge):
+                        remove_edges.add(edge)
+                        continue
+                    if layer_truss_number[edge] < truss_number_limit:
+                        remove_edges.add(edge)
+        for edge in remove_edges:
             u, v = edge
-            dsu.union(u, v)
-        root = dsu.find(query_nodes[0])
-        for node in nodes.copy():
-            if dsu.find(node) != root:
-                nodes.remove(node)
-                for neighbor in adjacency[node]:
-                    if neighbor > node:
-                        edges.remove((node, neighbor))
-                        remove_edges.add((node, neighbor))
-                adjacency[node] = set()
-                remove_nodes.add(node)
+            adjacency[u].remove(v)
+            adjacency[v].remove(u)
+            edges.remove(edge)
+        get_truss(adjacency, edges, nodes, query_nodes, truss_number_limit, remove_edges, remove_nodes)
 
         if set(query_nodes).issubset(nodes):
             bottom_up(graph, truss_number_limit, layer_limit, layers, edges, adjacency, nodes,

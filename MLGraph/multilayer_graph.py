@@ -1,6 +1,4 @@
-from array import array
-
-
+from copy import deepcopy
 
 class MultilayerGraph:
     def __init__(self, dataset_path=None):
@@ -185,7 +183,8 @@ class MultilayerGraph:
                     if edge_s1 not in delete_truss_number_edges[layer].keys():
                         delete_truss_number_edges[layer][edge_s1] = 0
                     delete_truss_number_edges[layer][edge_s1] += 1
-        print(count)
+        # print(count)
+
     def recover_edges(self, remove_edges: dict[tuple, list[int]], delete_truss_number_edges: list[dict[tuple, int]]):
         for edge, layers in remove_edges.items():
             u, v = edge
@@ -197,7 +196,7 @@ class MultilayerGraph:
                 self.edge_truss_number[layer][edge] += number
 
     def get_degrees_layer_by_layer(self):
-        degrees_layer_by_layer: list[dict[int, int]] = [{}for _ in self.layers_iterator]
+        degrees_layer_by_layer: list[dict[int, int]] = [{} for _ in self.layers_iterator]
         for layer in self.layers_iterator:
             for node in self.nodes_iterator:
                 degrees_layer_by_layer[layer][node] = len(self.adjacency_list[layer][node])
@@ -213,24 +212,18 @@ def edge_decomposition(graph: list[set[int]]):
     delta = compute_support(graph)
     sup_number_edges: dict[int, set] = {}
     for edge, sup_number in delta.items():
-        if sup_number in sup_number_edges and sup_number != 0:
-            sup_number_edges[sup_number].add(edge)
-        elif sup_number != 0:
+        if sup_number not in sup_number_edges:
             sup_number_edges[sup_number] = set()
-            sup_number_edges[sup_number].add(edge)
+        sup_number_edges[sup_number].add(edge)
     # 计算每个边的truss number
-    delta_layer = {}
-    for edge, sup_numbers in delta.items():
-        if sup_numbers != 0:
-            delta_layer[edge] = sup_numbers
-    # delta_layer = delta[:][layer]
-    edges: set[tuple] = set(delta_layer.keys())
-    if delta_layer:
-        t_max = max(delta_layer.values())
+    graph_copy = deepcopy(graph)
+    edges: set[tuple] = set(delta.keys())
+    if delta:
+        t_max = max(delta.values())
     else:
         t_max = 0
     # 计算边的truss_number
-    for t in range(1, t_max + 1):
+    for t in range(0, t_max + 1):
         if len(edges) == 0:
             break
         if t not in sup_number_edges:
@@ -240,24 +233,30 @@ def edge_decomposition(graph: list[set[int]]):
             edge = needs.pop()
             edges.remove(edge)
             u, v = edge
-            edges_truss_number[edge] = t + 2
-            for neighbor in (graph[u] & graph[v] & edges):
+            for neighbor in (graph_copy[u] & graph_copy[v]):
                 edge_s1 = (min(u, neighbor), max(u, neighbor))
                 edge_s2 = (min(v, neighbor), max(v, neighbor))
-                sup_number_edges[delta_layer[edge_s1]].remove(edge_s1)
-                sup_number_edges[delta_layer[edge_s2]].remove(edge_s2)
-                if (delta_layer[edge_s1] - 1) not in sup_number_edges:
-                    sup_number_edges[delta_layer[edge_s1] - 1] = set()
-                sup_number_edges[delta_layer[edge_s1] - 1].add(edge_s1)
-                if (delta_layer[edge_s2] - 1) not in sup_number_edges:
-                    sup_number_edges[delta_layer[edge_s2] - 1] = set()
-                sup_number_edges[delta_layer[edge_s2] - 1].add(edge_s2)
-                delta_layer[edge_s1] -= 1
-                delta_layer[edge_s2] -= 1
-                if delta_layer[edge_s1] == t - 1 and edge_s1 in edges:
+                sup_1 = delta[edge_s1]
+                sup_2 = delta[edge_s2]
+                if edge_s1 not in sup_number_edges[sup_1]:
+                    print(1)
+                sup_number_edges[sup_1].remove(edge_s1)
+                sup_number_edges[sup_2].remove(edge_s2)
+                delta[edge_s1] -= 1
+                delta[edge_s2] -= 1
+                if (sup_1 - 1) not in sup_number_edges.keys():
+                    sup_number_edges[sup_1 - 1] = set()
+                sup_number_edges[sup_1 - 1].add(edge_s1)
+                if (sup_2 - 1) not in sup_number_edges.keys():
+                    sup_number_edges[sup_2 - 1] = set()
+                sup_number_edges[sup_2 - 1].add(edge_s2)
+                if delta[edge_s1] < t:
                     needs.add(edge_s1)
-                if delta_layer[edge_s2] == t - 1 and edge_s2 in edges:
+                if delta[edge_s2] < t:
                     needs.add(edge_s2)
+            edges_truss_number[edge] = t + 2
+            graph_copy[u].remove(v)
+            graph_copy[v].remove(u)
     return edges_truss_number
 
 
@@ -279,12 +278,13 @@ def compute_support(graph: list[set[int]]):
     for node in range(len(graph)):
         for neighbor in graph[node]:
             if neighbor > node:
-                common_neighbors = set(graph[node]) & set(graph[neighbor])
-                for neighbor2 in common_neighbors:
-                    if neighbor2 > neighbor:
-                        delta[(node, neighbor)] += 1
-                        delta[(node, neighbor2)] += 1
-                        delta[(neighbor, neighbor2)] += 1
+                common_neighbors = graph[node] & graph[neighbor]
+                delta[(node, neighbor)] = len(common_neighbors)
+                # for neighbor2 in common_neighbors:
+                #     if neighbor2 > neighbor:
+                #         delta[(node, neighbor)] += 1
+                # delta[(node, neighbor2)] += 1
+                # delta[(neighbor, neighbor2)] += 1
     return delta
 
 
